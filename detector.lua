@@ -1,5 +1,3 @@
-require "utils"
-
 Detector = {
     fixtureFile = "bot.yaml"
 }
@@ -16,34 +14,30 @@ function Detector:newDetector (userAgent)
 end
 
 function Detector:parse ()
-    self.isBot = self.getParseCache(self)
+    hash = StringHash(self.userAgent)
+    self.isBot = self.getParseCache(self, hash)
     if self.isBot == nil then
         local regex = require("regex")
         for _, value in ipairs(self.fixtures) do
             local ok, _ = regex.test(self.userAgent, tostring(value["regex"]))
             if ok then
                 self.isBot = ok
-                return self.setParseCache(self)
+                return self.setParseCache(self, hash)
             end
         end
         self.isBot = false
     end
 
-    return self.setParseCache(self)
+    return self.setParseCache(self, hash)
 end
 
 -- TODO: cache using redis
-function Detector:getParseCache(_)
+function Detector:getParseCache(_, hash)
     return nil
 end
 
-function Detector:setParseCache(_)
+function Detector:setParseCache(_, hash)
     return self.isBot
-end
-
--- utils
-function StringSpaceless(str)
-    return string.gsub(str, " ", "")
 end
 
 function StringHash(str)
