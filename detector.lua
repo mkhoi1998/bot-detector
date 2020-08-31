@@ -15,15 +15,6 @@ function Detector:newDetector (userAgent)
     return o
 end
 
--- TODO: cache using redis
-function Detector:getParseCache(_)
-    return nil
-end
-
-function Detector:setParseCache(_)
-    return self.isBot
-end
-
 function Detector:parse ()
     self.isBot = self.getParseCache(self)
     if self.isBot == nil then
@@ -41,5 +32,21 @@ function Detector:parse ()
     return self.setParseCache(self)
 end
 
-print(Detector:newDetector('APIs-Google'):parse())
-print(Detector:newDetector('Mozilla/5.0 (Linux; Android 4.3; C5502 Build/10.4.1.B.0.101) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.136 Mobile Safari/537.36'):parse())
+-- TODO: cache using redis
+function Detector:getParseCache(_)
+    return nil
+end
+
+function Detector:setParseCache(_)
+    return self.isBot
+end
+
+-- utils
+function StringSpaceless(str)
+    return string.gsub(str, " ", "")
+end
+
+function StringHash(str)
+    local md5 = require 'md5'
+    return md5.sumhexa(str)
+end
