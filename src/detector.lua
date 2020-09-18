@@ -13,16 +13,6 @@ local function stringHash(str)
     return md5.sumhexa(str)
 end
 
-local function parse_boolean(v)
-    if v == '1' or v == 'true' or v == 'TRUE' then
-        return true
-    elseif v == '0' or v == 'false' or v == 'FALSE' then
-        return false
-    else
-        return nil
-    end
-end
-
 local function split_string (inputstr, sep)
     if sep == nil then
             sep = "%s"
@@ -34,7 +24,7 @@ local function split_string (inputstr, sep)
     return t
 end
 
-local function ip_2_number(ip)
+local function ip_2_decimal(ip)
     if ip == nil or type(ip) ~= "string" then
         return 0
     end
@@ -71,16 +61,6 @@ local function ip_2_number(ip)
     return res
 end
 
-local function match_ip(ip, netip)
-    local nets = split_string(netip, "/")
-    if #nets > 2 then
-        return false
-    end
-    local netip_string = math.floor(ip_2_number(nets[1])/2^tonumber(nets[2]))
-    local ip_string = math.floor(ip_2_number(ip)/2^tonumber(nets[2]))
-    return netip_string == ip_string
-end
-
 local function setParseCache(client, hash, status)
     client.__redis:set(hash, status)
     client.__redis:expire(hash, 43200)
@@ -99,10 +79,10 @@ local function isBot(client, userAgent, ip)
     local regex = require("regex")
     local matchIP = false
     local matchAgent = ""
-    for _, bot_agent in ipairs(client.__redis:lrange("agent", 0, -1)) do
+    for _, bot_agent in pairs(client.__redis:lrange("agent", 0, -1)) do
         local ok, _ = regex.test(userAgent, tostring(bot_agent))
         if ok then
-            matchAgent=bot_agent
+            matchAgent=tostring(bot_agent)
         end
     end
     if matchAgent == "" then
@@ -110,13 +90,14 @@ local function isBot(client, userAgent, ip)
         return respone.is_not_bot
     end
 
-    for _, bot_ip in ipairs(client.__redis:lrange(matchAgent, 0, -1)) do
-        matchIP = match_ip(ip, bot_ip)
-        if matchIP then
+    local is_bot = client.__redis:zrangebyscore("ranges", "("..math.floor(ip_2_decimal(ip)), "+inf", "LIMIT", 0, 1)
+    for _, key in pairs(is_bot) do
+        if string.find(key, matchAgent:gsub("%W", "").."end") then
             setParseCache(client, hash, respone.is_valid_bot)
             return respone.is_valid_bot
         end
     end
+
     setParseCache(client, hash, respone.is_invalid_bot)
     return respone.is_invalid_bot
 end
@@ -142,7 +123,12 @@ function detector.new(params)
         redis_client:rpush("agent", fixture["regex"])
         if fixture["ip"] ~= nil then
             for _, ip in ipairs(fixture["ip"]) do
-                redis_client:rpush(fixture["regex"], ip)
+                local parts = split_string(ip, "/")
+                local startIP = math.floor(ip_2_decimal(parts[1])/2^tonumber(parts[2]))
+                local endIP = startIP + 2^tonumber(parts[2])-1
+                local key=fixture["regex"]:gsub("%W", "")
+                redis_client:zadd("ranges", startIP, key.."start"..ip)
+                redis_client:zadd("ranges", endIP, key.."end"..ip)
             end
         end
     end

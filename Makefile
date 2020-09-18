@@ -5,4 +5,5 @@ init:
 	docker-compose up -d
 
 test:
+	make init
 	lua test/test.lua
