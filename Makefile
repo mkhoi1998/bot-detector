@@ -1,7 +1,9 @@
 .PHONY: all test clean
 
+clean:
+	docker-compose down;
+
 init:
-	docker-compose stop; docker-compose rm -f
 	docker-compose up -d
 
 test:
