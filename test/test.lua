@@ -16,8 +16,8 @@ testList["IS_NOT_BOT"] = {
 
 local detector = require "src.detector"
 local params = {
-    host = 'localhost',
-    port = 6379,
+    host = os.getenv('REDIS_HOST') or 'localhost',
+    port = os.getenv('REDIS_PORT') or 6379,
 }
 local client = detector.new(params)
 for want, test in pairs(testList) do
