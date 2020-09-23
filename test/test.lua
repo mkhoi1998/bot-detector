@@ -4,12 +4,12 @@ testList["IS_VALID_BOT"] = {
     agent = "APIs-Google",
     ip = "64.18.0.3"
 }
+testList["IS_INVALID_BOT"] = {
+    agent = "Polaris",
+    ip  = "64.18.0.4"
+}
 testList["IS_NOT_BOT"] = {
     agent = "Mozilla/5.0 (Linux; Android 4.3; C5502 Build/10.4.1.B.0.101) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.136 Mobile Safari/537.36",
-    ip = "125.234.115.178"
-}
-testList["IS_INVALID_BOT"] = {
-    agent = "Riddler",
     ip = "125.234.115.178"
 }
 

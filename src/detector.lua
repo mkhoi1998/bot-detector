@@ -79,27 +79,22 @@ local function isBot(client, userAgent, ip)
     local regex = require("regex")
     local matchIP = false
     local matchAgent = ""
-    for _, bot_agent in pairs(client.__redis:lrange("agent", 0, -1)) do
-        local ok, _ = regex.test(userAgent, tostring(bot_agent))
-        if ok then
-            matchAgent=tostring(bot_agent)
-        end
-    end
-    if matchAgent == "" then
-        setParseCache(client, hash, respone.is_not_bot)
-        return respone.is_not_bot
-    end
-
     local is_bot = client.__redis:zrangebyscore("ranges", "("..math.floor(ip_2_decimal(ip)), "+inf", "LIMIT", 0, 1)
     for _, key in pairs(is_bot) do
         if string.find(key, matchAgent:gsub("%W", "").."end") then
-            setParseCache(client, hash, respone.is_valid_bot)
-            return respone.is_valid_bot
+            local parts = split_string(key, "end")
+            local ok, _ = regex.test(userAgent, tostring(parts[1]))
+            if ok then
+                setParseCache(client, hash, respone.is_valid_bot)
+                return respone.is_valid_bot
+            end
+            setParseCache(client, hash, respone.is_invalid_bot)
+            return respone.is_invalid_bot
         end
     end
 
-    setParseCache(client, hash, respone.is_invalid_bot)
-    return respone.is_invalid_bot
+    setParseCache(client, hash, respone.is_not_bot)
+    return respone.is_not_bot
 end
 
 
@@ -120,15 +115,13 @@ function detector.new(params)
     local redis = require "redis"
     local redis_client = redis.connect(params)
     for _, fixture in ipairs(fixtures) do
-        redis_client:rpush("agent", fixture["regex"])
         if fixture["ip"] ~= nil then
             for _, ip in ipairs(fixture["ip"]) do
                 local parts = split_string(ip, "/")
-                local startIP = math.floor(ip_2_decimal(parts[1])/2^tonumber(parts[2]))
-                local endIP = startIP + 2^tonumber(parts[2])-1
-                local key=fixture["regex"]:gsub("%W", "")
-                redis_client:zadd("ranges", startIP, key.."start"..ip)
-                redis_client:zadd("ranges", endIP, key.."end"..ip)
+                local startIP = math.floor(ip_2_decimal(parts[1])/2^tonumber(32-parts[2])*2^tonumber(32-parts[2]))
+                local endIP = startIP + 2^tonumber(32-parts[2]+1)-1
+                redis_client:zadd("ranges", startIP, fixture["regex"].."start"..ip)
+                redis_client:zadd("ranges", endIP, fixture["regex"].."end"..ip)
             end
         end
     end
