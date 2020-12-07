@@ -77,7 +77,6 @@ local function isBot(client, userAgent, ip)
         return cache
     end
     local regex = require("regex")
-    local matchIP = false
     local matchAgent = ""
     local is_bot = client.__redis:zrangebyscore("ranges", "("..math.floor(ip_2_decimal(ip)), "+inf", "LIMIT", 0, 1)
     for _, key in pairs(is_bot) do
@@ -90,6 +89,18 @@ local function isBot(client, userAgent, ip)
             end
             setParseCache(client, hash, respone.is_invalid_bot)
             return respone.is_invalid_bot
+        end
+    end
+
+    -- verify bing bot (linux/unix)
+    local reverser = io.popen("host "..ip)
+    local reverseOut = reverser:read("*a")
+    if string.match(reverseOut, "1e100.net") then
+        local lookups = split_string(reverseOut, " ")
+        local lookuper = io.popen("host "..lookups[#lookups]:sub(1, -3))
+        local lookupOut = lookuper:read("*a")
+        if string.match(lookupOut, ip) then
+            return respone.is_valid_bot
         end
     end
 
